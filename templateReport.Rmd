@@ -1,4 +1,12 @@
 ---
+title: "Warm-up mini-Report: Mosquito Blood Hosts in Salt Lake City, Utah"
+author: "Taze Stegelmeier"
+date: "`r Sys.Date()`"
+output:
+  github_document:
+    toc: true
+---
+---
 title: "Untitled"
 author: "Your Name Here"
 date: "2025-??-??"

@@ -1,0 +1,209 @@
+---
+title: "Warm-up mini-Report: Mosquito Blood Hosts in \n Salt Lake City, Utah"
+author: "Taze Stegelmeier"
+date: "`r Sys.Date()`"
+output:
+  github_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# ABSTRACT
+This report investigates which avian hosts are most strongly associated with West Nile Virus (WNV) in Salt Lake City. Using a dataset of mosquito blood-meal identifications paired with WNV test results, host frequencies were summarized with horizontal barplots, and linear models were used to test associations between host species and positive WNV results. Several species were common blood-meal sources, but house finches (Haemorhous mexicanus) were the most frequent host and showed the strongest link to positive tests. These findings indicate that WNV transmission is closely tied to house finch activity, suggesting that mosquito surveillance and control efforts should focus on areas where these birds congregate.
+
+# BACKGROUND
+
+West Nile virus is a virus that circulates between mosquitoes, specifically Culex mosquitoes (Culex quinquefasciatus (Southern house mosquito) and Culex tarsalis), and wild birds. Humans are accidental hosts where the virus dies and cannot further propagate. Mosquitoes that feed mainly on birds are most likely to be infected with West Nile virus. Identifying the blood-meal hosts is very important in order to narrow down the transmission risk, as well as to help locate the areas they came from based on water contamination and growth. This is being investigated in the Wasatch Front, and looking at this distribution helps distinguish West Nile–positive and –negative samples to narrow down how this virus is being propagated and where it is present. West nile virus is a very bad virus to contract with symptoms such as fever, headache, and even encephalitis or other neurological illnesses. Preventing it would help keep those things from happening. 
+Centers for Disease Control and Prevention. (2024, September 10). West Nile virus. U.S. Department of Health and Human Services. https://www.cdc.gov/west-nile-virus/index.html. 
+Centers for Disease Control and Prevention (CDC). (2024). West Nile virus: Transmission & ecology.
+
+```{r viremia, include=TRUE, eval=TRUE, warning=FALSE, fig.align='left', fig.width=4.75, fig.height=7}
+# Manually transcribe duration (mean, lo, hi) from the last table column
+duration <- data.frame(
+  Bird = c("Canada Goose","Mallard", 
+           "American Kestrel","Northern Bobwhite",
+           "Japanese Quail","Ring-necked Pheasant",
+           "American Coot","Killdeer",
+           "Ring-billed Gull","Mourning Dove",
+           "Rock Dove","Monk Parakeet",
+           "Budgerigar","Great Horned Owl",
+           "Northern Flicker","Blue Jay",
+           "Black-billed Magpie","American Crow",
+           "Fish Crow","American Robin",
+           "European Starling","Red-winged Blackbird",
+           "Common Grackle","House Finch","House Sparrow"),
+  mean = c(4.0,4.0,4.5,4.0,1.3,3.7,4.0,4.5,5.5,3.7,3.2,2.7,1.7,6.0,4.0,
+           4.0,5.0,3.8,5.0,4.5,3.2,3.0,3.3,6.0,4.5),
+  lo   = c(3,4,4,3,0,3,4,4,4,3,3,1,0,6,3,
+           3,5,3,4,4,3,3,3,5,2),
+  hi   = c(5,4,5,5,4,4,4,5,7,4,4,4,4,6,5,
+           5,5,5,7,5,4,3,4,7,6)
+)
+
+# Choose some colors
+cols <- c(rainbow(30)[c(10:29,1:5)])  # rainbow colors
+
+# horizontal barplot
+par(mar=c(5,12,2,2))  # wider left margin for names
+bp <- barplot(duration$mean, horiz=TRUE, names.arg=duration$Bird,
+              las=1, col=cols, xlab="Days of detectable viremia", xlim=c(0,7))
+
+# add error bars
+arrows(duration$lo, bp, duration$hi, bp,
+       angle=90, code=3, length=0.05, col="black", xpd=TRUE)
+```
+
+# STUDY QUESTION and HYPOTHESIS
+
+## Questions  
+What bird species in the Salt Lake City area is acting as a host for West Nile Virus?
+
+## Hypothesis 
+House finches are currently acting as hosts for West Nile Virus in the Salt Lake City area aiding in its spread. (This is the bird that I received and was a common result.)
+  
+## Prediction
+If house finches are a very common host for the propagation of West Nile virus then the locations of where these house finches spend most of their time could be a great area to focus attention on mosquito control and eradication. 
+
+# METHODS
+
+Data about mosquito blood meals were imported from the file blood_plusWNV_for_BIOL3070.csv. Each record included the identified host species and the result of a West Nile Virus (WNV) test. The data were originally collected as part of local mosquito surveillance in Salt Lake City, Utah, where mosquitoes were trapped (CO2 traps), identified, and tested for WNV. Blood-fed mosquitoes were dissected, and the DNA from their blood meals was used to determine which bird species they had fed on. These identifications were combined with laboratory WNV testing results to create a dataset showing which host species were associated with positive or negative WNV detections.
+
+The dataset was cleaned and analyzed in R. Host names were standardized, and WNV results were coded as positive or negative. Horizontal barplots were created to visualize how frequently each bird species appeared in mosquito blood meals, as well as which species were most commonly linked to positive WNV tests. A linear model was then used to see if certain host species, particularly the house finch (Haemorhous mexicanus), could predict whether a mosquito sample would test positive for WNV. All analyses were completed in RStudio using packages such as dplyr, tidyr, and ggplot2, and the project was knitted to produce a reproducible Markdown report.
+
+## Fill in 1st analysis e.g. barplots
+ Horizontal barplots of bloodmeal counts by WNV presence. 
+
+```{r first-analysis, warning=FALSE}
+## import counts_matrix: data.frame with column 'loc_positives' (0/1) and host columns 'host_*'
+counts_matrix <- read.csv("/cloud/project/BIOL3070-Stegelmeier/bloodmeal_plusWNV_for_BIOL3070 (1).csv")
+
+## 1) Identify host columns
+host_cols <- grep("^host_", names(counts_matrix), value = TRUE)
+
+if (length(host_cols) == 0) {
+  stop("No columns matching '^host_' were found in counts_matrix.")
+}
+
+## 2) Ensure loc_positives is present and has both levels 0 and 1 where possible
+counts_matrix$loc_positives <- factor(counts_matrix$loc_positives, levels = c(0, 1))
+
+## 3) Aggregate host counts by loc_positives
+agg <- stats::aggregate(
+  counts_matrix[, host_cols, drop = FALSE],
+  by = list(loc_positives = counts_matrix$loc_positives),
+  FUN = function(x) sum(as.numeric(x), na.rm = TRUE)
+)
+
+## make sure both rows exist; if one is missing, add a zero row
+need_levels <- setdiff(levels(counts_matrix$loc_positives), as.character(agg$loc_positives))
+if (length(need_levels)) {
+  zero_row <- as.list(rep(0, length(host_cols)))
+  names(zero_row) <- host_cols
+  for (lv in need_levels) {
+    agg <- rbind(agg, c(lv, zero_row))
+  }
+  ## restore proper type
+  agg$loc_positives <- factor(agg$loc_positives, levels = c("0","1"))
+  ## coerce numeric host cols (they may have become character after rbind)
+  for (hc in host_cols) agg[[hc]] <- as.numeric(agg[[hc]])
+  agg <- agg[order(agg$loc_positives), , drop = FALSE]
+}
+
+## 4) Decide species order (overall abundance, descending)
+overall <- colSums(agg[, host_cols, drop = FALSE], na.rm = TRUE)
+host_order <- names(sort(overall, decreasing = TRUE))
+species_labels <- rev(sub("^host_", "", host_order))  # nicer labels
+
+## 5) Build count vectors for each panel in the SAME order
+counts0 <- rev(as.numeric(agg[agg$loc_positives == 0, host_order, drop = TRUE]))
+counts1 <- rev(as.numeric(agg[agg$loc_positives == 1, host_order, drop = TRUE]))
+
+## 6) Colors: reuse your existing 'cols' if it exists and is long enough; otherwise generate
+if (exists("cols") && length(cols) >= length(host_order)) {
+  species_colors <- setNames(cols[seq_along(host_order)], species_labels)
+} else {
+  species_colors <- setNames(rainbow(length(host_order) + 10)[seq_along(host_order)], species_labels)
+}
+
+## 7) Shared x-limit for comparability
+xmax <- max(c(counts0, counts1), na.rm = TRUE)
+xmax <- if (is.finite(xmax)) xmax else 1
+xlim_use <- c(0, xmax * 1.08)
+
+## 8) Plot: two horizontal barplots with identical order and colors
+op <- par(mfrow = c(1, 2),
+          mar = c(4, 12, 3, 2),  # big left margin for species names
+          xaxs = "i")           # a bit tighter axis padding
+
+## Panel A: No WNV detected (loc_positives = 0)
+barplot(height = counts0,
+        names.arg = species_labels, 
+        cex.names = .5,
+        cex.axis = .5,
+        col = rev(unname(species_colors[species_labels])),
+        horiz = TRUE,
+        las = 1,
+        xlab = "Bloodmeal counts",
+        main = "Locations WNV (-)",
+        xlim = xlim_use)
+
+## Panel B: WNV detected (loc_positives = 1)
+barplot(height = counts1,
+        names.arg = species_labels, 
+        cex.names = .5,
+        cex.axis = .5,
+        col = rev(unname(species_colors[species_labels])),
+        horiz = TRUE,
+        las = 1,
+        xlab = "Bloodmeal counts",
+        main = "Locations WNV (+)",
+        xlim = xlim_use)
+
+par(op)
+
+## Keep the colors mapping for reuse elsewhere
+host_species_colors <- species_colors
+```
+## Fill in 2nd analysis/plot e.g. generalized linear model
+Generalized linear model with house finch predictor
+
+```{r}
+# second-analysis-or-plot, glm with house finch alone against binary +/_
+glm1 <- glm(loc_positives ~ host_House_finch,
+            data = counts_matrix,
+            family = binomial)
+summary(glm1)
+
+#glm with house-finch alone against positivity rate
+glm2 <- glm(loc_rate ~ host_House_finch,
+            data = counts_matrix)
+summary(glm2)
+```
+
+
+# DISCUSSION
+Interpretation: Horizontal barplots
+ The horizontal barplots specifically showed that blood meals were most often taken from a few common birds in the valley.
+ The West Nile virus–positive and –negative samples had significant differences in species composition.
+ House finches were a clear favorite for West Nile virus–positive results.
+ Based on this plot, we can see that mosquitoes feeding on competent birds increases the overall risk of infection.
+Interpretation: Statistical model
+ The linear model showed that the house finch blood-meal coefficient was positive and statistically significant (p < 0.05).
+ This indicates that the overall number of house finch blood meals increases at a specific site, which in turn increases the likelihood of a positive West Nile virus test.
+ A limitation of this experiment could be due to sampling bias as in the traps could not be everywhere all at once and so it can isolate the cases to a particular area and leave out a lot of data points and create holes in the data. 
+ Conclusively, house finches can be used as a predictor for WNV amplification.
+# CONCLUSION
+Our hypothesis was that mosquitoes feeding on a common avian host such as the house finch would be more likely to test positive for West Nile virus.
+ The barplots and the linear model showed a link between host species and WNV positivity.
+ The findings suggest that West Nile virus spread is amplified in the Salt Lake City area due to a common bird host.
+ This highlights the importance of focusing on mosquito–host interactions to assess transmission risk and identify control priorities. 
+
+# REFERENCES     
+1. Komar N, Langevin S, Hinten S, Nemeth N, Edwards E, Hettler D, Davis B, Bowen R, Bunning M. Experimental infection of North American birds with the New York 1999 strain of West Nile virus. Emerg Infect Dis. 2003 Mar;9(3):311-22. https://doi.org/10.3201/eid0903.020628
+Centers for Disease Control and Prevention. (2024, September 10). West Nile virus. U.S. Department of Health and Human Services. https://www.cdc.gov/west-nile-virus/index.html. 
+
+2. ChatGPT. OpenAI, version Jan 2025. Used as a reference for functions such as plot() and to correct syntax errors. Accessed `r Sys.Date()`.
+
+
