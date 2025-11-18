@@ -90,6 +90,8 @@ print(p)
 
 ![](BIOL-3070-Final-Project-2.0_files/figure-gfm/bar_mean_se_by_genotype_carrier-1.png)<!-- -->
 
+<img src="BIOL-3070-Final-Project-2.0_files/Normalized pain relief (1).png" width="80%" />
+
 # QUESTION
 
 Do genotype and carrier status explain meaningful variation in
@@ -179,6 +181,8 @@ print(p2)
 m <- lm(pain ~ genotype + carrier * sex + country, data = df)
 invisible(capture.output(summary(m)))
 ```
+
+<img src="BIOL-3070-Final-Project-2.0_files/Normalized pain relief by carrier status (2).png" width="80%" />
 
 # METHODS
 
