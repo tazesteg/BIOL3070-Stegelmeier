@@ -5,39 +5,82 @@ Taze Stegelmeier
 
 - [ABSTRACT](#abstract)
 - [BACKGROUND](#background)
+- [METHODS](#methods)
 - [QUESTION](#question)
 - [HYPOTHESIS](#hypothesis)
 - [PREDICTION](#prediction)
-- [METHODS](#methods)
+- [RESULTS](#results)
 - [DISCUSSION](#discussion)
 - [CONCLUSION](#conclusion)
 - [REFERENCES](#references)
 
 # ABSTRACT
 
-Opioid pain relief varies widely across patients. Using a simulated
-EPOS-style patient-level CSV (normalized pain relief with genotype,
-carrier status, sex, and country), I built two visuals: (1) pain relief
-across genotypes and (2) mean ± SE pain relief by genotype with carrier
-status, plus a carrier-by-sex view. The genotype plot shows clear
-between-group differences (genotypes ordered by median relief), and the
-bar plot highlights a consistent gap between carrier groups within
-genotypes, with small sex-specific shifts in the carrier-by-sex view. A
-simple linear model (pain ~ genotype + carrier\*sex + country)
-accompanies the figures to quantify these effects. Together, the visuals
-and model support genotype-linked differences in analgesic response and
-a carrier effect that may vary slightly by sex.
+Opioid pain relief varies widely across Opioid pain relief varies widely
+across patients, and EPOS (a human pain genetics database) was designed
+to study how genetic variation contributes to that variability. In this
+project, I asked whether genotype and carrier status (and their
+interaction with sex) are associated with normalized opioid pain relief
+in an EPOS-style simulated patient-level dataset (including genotype,
+carrier status, sex, and country). I built two visuals: (1) a mean ± SE
+bar plot of pain relief by genotype and carrier status and (2) a
+carrier-by-sex boxplot of normalized pain relief. I also fit a linear
+model (pain ~ genotype + carrier \* sex + country) to describe these
+relationships. In these simulated data, GG genotypes show the highest
+normalized pain relief, A-allele carriers show lower relief, and carrier
+differences look similar in females and males, suggesting that genotype
+and carrier status may contribute to variability in opioid response in
+an EPOS-style setting.
 
 # BACKGROUND
 
-Individual response to opioid therapy is influenced by clinical and
-genetic factors. Prior work (e.g., EPOS) points to variants that
-modulate analgesic efficacy. Here, instead of summary SNP tables, I use
-a simulated EPOS-style patient-level file capturing normalized pain
-relief and key covariates (genotype, carrier, sex, country). This lets
-me directly inspect phenotype differences across genotypes and evaluate
-whether carrier status—and its interaction with sex—tracks with the
-observed relief.
+Opioid analgesics are a cornerstone of treatment for moderate-to-severe
+pain, yet patients show wide variability in how much pain relief they
+experience and in their risk for adverse effects and dose escalation
+(Galvan et al., 2011). Understanding why opioid response differs across
+individuals is clinically important, because it could help clinicians
+choose safer and more effective therapies rather than relying on
+trial-and-error prescribing. Prior human pain genetics work, including
+the EPOS pain genetics database, suggests that genetic variants can
+influence analgesic efficacy and contribute to this variability in
+response. In this project, I focus on whether genotype and carrier
+status are linked to differences in normalized opioid pain relief within
+an EPOS-style dataset.
+
+# METHODS
+
+I analyzed a simulated EPOS-style patient-level dataset designed to
+mimic a single-locus pain genetics study. Each row represents one
+“patient” and includes a normalized pain relief score along with
+genotype (AA, GA, GG), carrier status (A-allele carrier vs non-carrier),
+sex, and country. The simulated data were constructed so that groups
+overlap but show modest directional differences in pain relief, loosely
+inspired by patterns reported in human pain genetics work (Galvan et
+al., 2011) and generated with the help of ChatGPT (ChatGPT, 2025).
+
+The pain outcome in the dataset is provided as a normalized pain relief
+measure on a 0–100 scale. This normalized score was created during the
+simulation process by rescaling underlying pain relief values so that 0
+represents the lowest relief in the simulated population and 100
+represents the highest. All analyses in this report use this normalized
+0–100 pain relief variable directly.
+
+Genotype, carrier status, sex, and country were treated as categorical
+variables. Carrier status groups individuals into A-allele carriers (AA
+or GA) versus non-carriers (GG).
+
+I summarized group patterns descriptively using two figures:
+
+Figure 1: A bar plot of mean normalized pain relief with standard error
+bars, shown by genotype and carrier status.
+
+Figure 2: Boxplots of normalized pain relief by carrier status, split by
+sex, with group means overlaid.
+
+No formal hypothesis tests or regression models were fit in this
+analysis; instead, I focus on visual inspection of patterns across
+genotypes, carrier groups, and sexes in this simulated EPOS-style
+dataset.
 
 ``` r
 # read + sanitize headers
@@ -95,24 +138,26 @@ print(p)
 # QUESTION
 
 Do genotype and carrier status explain meaningful variation in
-normalized pain relief, and is there evidence of a carrier × sex
-interaction in these simulated data?
+normalized pain relief in this simulated EPOS-style dataset, and is
+there evidence that the carrier pattern differs by sex?
 
 # HYPOTHESIS
 
-Genotype groups will differ in mean pain relief, and carriers will show
-a systematic shift relative to non-carriers; the carrier effect may show
-modest sex-specific modulation.
+Genotype groups will differ in mean normalized pain relief, and A-allele
+carriers will tend to show lower relief than GG non-carriers. Any
+carrier-by-sex interaction is expected to be modest (similar carrier
+pattern in females and males, rather than a reversal).
 
 # PREDICTION
 
-When ordering genotypes by median relief, groups will separate visually
-(violin/boxplot), and mean ± SE bars will show a consistent
-carrier/non-carrier gap within genotypes. In the carrier-by-sex view,
-the direction of the carrier effect will be similar across sexes with
-possible small differences in magnitude. The linear model will attribute
-variance to genotype and carrier, with a potential (but not necessarily
-large) carrier × sex term.
+In the genotype × carrier bar plot (Figure 1), ordering by genotype will
+reveal a gradient in mean pain relief, with GG highest and AA lowest,
+and a consistent gap between carriers and non-carriers. In the
+carrier-by-sex boxplot (Figure 2), the direction of the carrier
+difference will be similar in females and males, with only small shifts
+in central tendency between sexes. The linear model will estimate
+non-zero coefficients for genotype and carrier terms, with the carrier ×
+sex interaction term smaller than the main effects.
 
 ``` r
 # 1) Load CSV & sanitize headers (prevents zero-length-name issues)
@@ -184,46 +229,53 @@ invisible(capture.output(summary(m)))
 
 <img src="BIOL-3070-Final-Project-2.0_files/Normalized pain relief by carrier status (2).png" width="80%" />
 
-# METHODS
+# RESULTS
 
-I loaded the CSV and coerced columns to factors where appropriate
-(genotype, carrier, sex, country). I renamed norm_pain_relief to pain.
-Figure A: Violin + boxplot of pain ~ genotype, with genotypes re-leveled
-by descending median relief; points mark means. Figure B: Mean ± SE bar
-plot of pain by genotype and carrier (dodged bars with n per cell).
-Carrier × Sex view: Boxplot of pain ~ carrier colored by sex with mean
-points overlaid. For inference support, I fit lm(pain ~ genotype +
-carrier\*sex + country). I report the direction/patterns visually and
-use the model to corroborate group differences; I do not interpret
-absolute effect sizes beyond what the figures suggest.
+Figure 1: genotype and carrier. Figure 1 shows mean normalized pain
+relief (± SE) by genotype and carrier status. Descriptively, GG
+individuals have the highest mean relief, while GA and AA genotypes tend
+to have lower means, with AA appearing lowest and GA intermediate.
+Within this pattern, A-allele carriers (AA_or_GA) are generally below
+the GG non-carrier group, suggesting a separation in typical pain relief
+between carriers and non-carriers.
+
+Figure 2: carrier status and sex. Figure 2 shows boxplots of normalized
+pain relief by carrier status, split by sex. GG non-carriers again
+appear to have higher typical relief than A-allele carriers, and this
+pattern is similar in both females and males. Within each carrier group,
+male and female distributions overlap substantially, with only small
+shifts in medians and means, indicating that sex differences in these
+simulated data are modest relative to the carrier vs. non-carrier
+contrast.
 
 # DISCUSSION
 
-The genotype plot shows visibly distinct distributions and means across
-groups, consistent with a genetic component to opioid response. Ordering
-by median relief makes the gradient clear. The mean ± SE bars confirm a
-reproducible carrier vs. non-carrier separation within genotypes,
-indicating a carrier effect that persists after grouping by genotype. In
-the carrier-by-sex view, both sexes follow the same overall direction,
-with modest spacing between mean points suggesting a small interaction
-rather than a reversal. The linear model formalizes this picture by
-attributing variance to genotype and carrier, with country included to
-absorb baseline differences.
+Across these simulated EPOS-style data, the descriptive plots suggest
+that genotype and carrier status are related to patterns in normalized
+opioid pain relief. GG individuals tend to cluster at higher relief
+values, while A-allele carriers (especially AA) tend to show lower
+typical relief, with GA intermediate. The carrier-by-sex boxplots
+indicate that this carrier pattern looks similar in males and females,
+rather than showing a strong reversal or large sex-specific difference.
 
-These findings align with a polygenic, modest-effect view of analgesic
-response: genotype strata differ, carrier status nudges the mean, and
-sex may lightly tune the effect. Because these are simulated data, I
-treat magnitudes as illustrative; the patterns nonetheless match what we
-expect biologically (multiple small contributors rather than a single
-dominant factor).
+These patterns are consistent with a plausible biological scenario in
+which genetic variation at a single locus contributes modestly to
+variability in analgesic response, while many other clinical and genetic
+factors (not modeled here) also play roles. Because the dataset is
+simulated and I did not perform formal hypothesis tests, I interpret
+these findings as descriptive patterns rather than definitive evidence
+of causal effects.
 
 # CONCLUSION
 
-Across these simulated patient-level data, genotype strata show
-meaningful differences in normalized pain relief, carriers differ from
-non-carriers in a consistent direction, and any sex modulation appears
-modest—together supporting a genetic contribution to opioid response
-with a carrier effect that may vary slightly by sex.
+In this EPOS-style simulated dataset, descriptive bar plots and boxplots
+show that GG non-carriers tend to have higher normalized opioid pain
+relief than A-allele carriers, with AA lowest and GA intermediate, and
+that this carrier pattern looks similar in females and males. These
+results illustrate how patient-level pain-genetics data can be
+visualized to explore potential relationships between genotype, carrier
+status, sex, and opioid response, and they highlight patterns that could
+be evaluated more rigorously with formal modeling and real EPOS data.
 
 # REFERENCES
 
